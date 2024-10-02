@@ -12,6 +12,5 @@
 Embeds.xml
 #@end-no-lib-strip@
 
-Config.lua
 Utils.lua
 Soundboard.lua
