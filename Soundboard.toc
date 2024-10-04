@@ -1,6 +1,6 @@
-## Interface: 100000
+## Interface: 110002
 ## Title: |cff00ccffSoundboard|r
-## Version: 0.1
+## Version: 0.5
 ## Notes: Play a custom sound when you kill an enemy player
 ## Author: Wuspop
 ## SavedVariables: SoundboardDB
@@ -13,4 +13,5 @@ Embeds.xml
 #@end-no-lib-strip@
 
 Utils.lua
+SoundTable.lua
 Soundboard.lua
