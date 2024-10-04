@@ -67,34 +67,10 @@ else
 			
 		elseif event == "ADDON_LOADED" then
 			-- Do nothing
-		-- Handle any other event.
 		else
 			print("Calling handleMainArenaEvents for event : "..event)
 			Soundboard:handleMainArenaEvents(event)
-			--if event == "ZONE_CHANGED_NEW_AREA" then
-			--	print("In if for zone change...")
-			--	Soundboard:handleZoneChange()
-			--else
-			--	print("In if for handleMain...")
-			--	Soundboard:handleMainEvents()
-			--end
-			
-			--print("WHAT EVENT: "..event)
-		
-[[--		
-			-- THIS WORKS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			if event == "PLAYER_LEAVE_COMBAT" then
-				print("Player left combat!")
-				local ok, _, handle = pcall(PlaySoundFile, "Interface\\Addons\\Soundboard\\Sounds\\Brett3.mp3", "Master")
-			else
-				print("Nothing happened...")	
-			end
-			
-			local func = self.events[event]
-			if type(Soundboard[func]) == "function" then
-				Soundboard[func](Soundboard, event, ...)
-			end
---]]
+
 		end
 
 
@@ -124,11 +100,11 @@ function Soundboard:handleMainArenaEvents(event)
 		self:grabArenaOpponentSpecializations()
 	else
 		if event == "ARENA_OPPONENT_UPDATE" then
-			print("Calling checkEnemyStatus() for ARENA_OPPONENT_UPDATE! = "..event)
+			print("Calling checkEnemyStatus() for ARENA_OPPONENT_UPDATE!")
 		elseif event == "UNIT_NAME_UPDATE" then
-			print("Calling checkEnemyStatus() for UNIT_NAME_UPDATE = "..event)
+			print("Calling checkEnemyStatus() for UNIT_NAME_UPDATE")
 		else
-			print("Calling checkEnemyStatus() for OTHER = "..event)
+			print("Calling checkEnemyStatus() for OTHER "..event)
 		end
 		-- Any other event, like an opponent update, we just check this.
 		self:checkEnemyStatus() -- perhaps this needs to be Soundboard??
@@ -146,19 +122,42 @@ function Soundboard:checkEnemyStatus()
 	if not IsActiveBattlefieldArena() then
 		print("Arena hasn't started yet - returning! Value of arena: ", arena)
 		return
+	else
+		print("Active Arena Battlefield!")
 	end
 	
 	-- Check the database for the units.
-	for i = 1, #self.enemyInfo do
-		local unit = self.enemyInfo[unit]
+	--if self.enemyInfo == nil then
+	--	print("self.enemyInfo is EMPTY!!")
+	--else
+	--	print("self.enemyInfo is not empty!")
+	--end
+	
+	for i = 1, GetNumArenaOpponentSpecs() do
+		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
+		if not self:IsValidUnit(unit) then
+			print("NOT A VALID UNIT - RETURNING")
+			return
+		end
+		--units[i] = unit
+		self:isEnemyDead(unit)
+	end
+	
+
+--[[
+	print("About to call the for loop!")
+	for _, i in pairs(self.enemyInfo) do
+		print("Insided enemyInfo??")
+		local unit = self.enemyInfo[i]
 		if not unit then
 			print("FAIL: Unit nil from table ~ !")
 			return
 		end
 		self:isEnemyDead(unit) -- need to be Soundboard:isEnemyDead ???
+		print("After isEnemyDead() call!")
 	end
-	
---[[
+
+
 	print("About to call isEnemyDead()")
 	-- Now that we have the units. Call isEnemyDead.
 	for i = 1, #units do
@@ -200,8 +199,8 @@ function Soundboard:handleJoinedArena()
 	
 	self:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS")
 	self:RegisterEvent("ARENA_OPPONENT_UPDATE")
-	self:RegisterEvent("UNIT_NAME_UPDATE")
-	--self:RegisterEvent("UNIT_HEALTH")
+	--self:RegisterEvent("UNIT_NAME_UPDATE")
+	self:RegisterEvent("UNIT_HEALTH")
 	--self:RegisterEvent("UNIT_NAME_UPDATE")
 	
 	-- Store information about enemies in table.
@@ -249,7 +248,6 @@ function Soundboard:grabArenaOpponentSpecializations()
 	units = { }
 	for i = 1, GetNumArenaOpponentSpecs() do
 		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
-		print("Unit = "..unit)
 		if not self:IsValidUnit(unit) then
 			print("NOT A VALID UNIT - RETURNING")
 			return
@@ -259,13 +257,13 @@ function Soundboard:grabArenaOpponentSpecializations()
 		if specID and specID > 0 then
 			--local id, name, description, icon, background, role, class = GetSpecializationInfoByID(specID)
 			local id, name, description, icon, role, class = GetSpecializationInfoByID(specID)
-			print("Got spec info")
 			
 			-- Store spec information in enemyInfo.
-			self.enemyInfo[unit].spec = name
-			self.enemyInfo[unit].specIcon = specIcon
-			self.enemyInfo[unit].class = class
-			self.enemyInfo[unit].isDead = false
+			--self.enemyInfo[unit].spec = name
+			--self.enemyInfo[unit].specIcon = specIcon
+			--self.enemyInfo[unit].class = class
+			--self.enemyInfo[unit].isDead = false
+			--print("Did enemyInfo work? "..self.enemyInfo[unit].spec)
 		end
 	end
 
@@ -303,17 +301,20 @@ function Soundboard:isEnemyDead(unit)
 	-- Check if the unit is arena enemy + not pet.
 	if strfind(unit, "arena") and not strfind(unit, "pet") then
 		print("Unit is arena enemy + not pet. Unit : "..unit)
-		local isDeadOrGhost = UnitIsDeadOrGhost(unit) -- this is a boolean, nil doesn't mean anything
-		if isDeadOrGhost then
-			print("isDeadOrGhost = "..isDeadOrGhost.." for unit = "..unit)
+		--local isDeadOrGhost = UnitIsDeadOrGhost(unit) -- this is a boolean, nil doesn't mean anything
+		print("is this call scruffed???")
+		if UnitIsDeadOrGhost(unit) then
+			print("Inside isDeadOrGhost!")
+			--print("isDeadOrGhost = "..isDeadOrGhost.." for unit = "..unit)
 			
-			if not self.enemyInfo[unit].isDead then
-				print("Calling callSoundboard()")
-				Soundboard:callSoundboard()
-				self.enemyInfo[unit].isDead = true
-			else
-				print("Enemy has already been marked dead. Skipping soundboard...")
-			end
+			
+			--if not self.enemyInfo[unit].isDead then
+			print("Calling callSoundboard()")
+			self:callSoundboard()
+				--self.enemyInf [unit].isDead = true
+			--else
+			--	print("Enemy has already been marked dead. Skipping soundboard...")
+			--end
 			
 			
 		else
