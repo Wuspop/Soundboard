@@ -39,8 +39,14 @@ else
 	Soundboard = { }
 	Soundboard.eventHandler = CreateFrame("Frame")
 	Soundboard.instanceType = nil
-	
-	Soundboard.enemyInfo = { }
+
+	Soundboard.enemyInfo = { 
+		name = { },
+		specIcon = { },
+		class = { },
+		isDead = { }
+		
+	}
 	
 	Soundboard.eventHandler.events = { }
 	Soundboard.eventHandler:RegisterEvent("PLAYER_LOGIN") -- I think reloading gives the same effect.
@@ -99,13 +105,13 @@ function Soundboard:handleMainArenaEvents(event)
 	elseif event == "ARENA_PREP_OPPONENT_SPECIALIZATIONS" then
 		self:grabArenaOpponentSpecializations()
 	else
-		if event == "ARENA_OPPONENT_UPDATE" then
-			print("Calling checkEnemyStatus() for ARENA_OPPONENT_UPDATE!")
-		elseif event == "UNIT_NAME_UPDATE" then
-			print("Calling checkEnemyStatus() for UNIT_NAME_UPDATE")
-		else
-			print("Calling checkEnemyStatus() for OTHER "..event)
-		end
+		--if event == "ARENA_OPPONENT_UPDATE" then
+		--	print("Calling checkEnemyStatus() for ARENA_OPPONENT_UPDATE!")
+		--elseif event == "UNIT_NAME_UPDATE" then
+		--	print("Calling checkEnemyStatus() for UNIT_NAME_UPDATE")
+		--else
+		--	print("Calling checkEnemyStatus() for OTHER "..event)
+		--end
 		-- Any other event, like an opponent update, we just check this.
 		self:checkEnemyStatus() -- perhaps this needs to be Soundboard??
 	end
@@ -120,7 +126,7 @@ function Soundboard:checkEnemyStatus()
 	-- So, we'll see if this actually works.
 	-- I personally checked - although it returns 2 arguments, the general call to it returns a bool.
 	if not IsActiveBattlefieldArena() then
-		print("Arena hasn't started yet - returning! Value of arena: ", arena)
+		--print("Arena hasn't started yet - returning! Value of arena: ", arena)
 		return
 	else
 		print("Active Arena Battlefield!")
@@ -206,7 +212,7 @@ function Soundboard:handleJoinedArena()
 	-- Store information about enemies in table.
 	local numOfOpponents = GetNumArenaOpponentSpecs()
 	if numOfOpponents and numOfOpponents > 0 then
-		print("About to call checkEnemyStatus() for handleJoinedArena")
+		--print("About to call checkEnemyStatus() for handleJoinedArena")
 		self:grabArenaOpponentSpecializations()
 	else
 		print("GetNumArenaOpponentSpecs() returned 0 : "..numOfOpponents)
@@ -231,7 +237,7 @@ function Soundboard:handleZoneChange()
 	
 	-- Should only get called once when we join and the new instance type is ARENA.
 	if instanceType == "arena" then 
-		print("Type == arena!")
+		--print("Type == arena!")
 		self:handleJoinedArena()
 	elseif instanceType ~= "arena" and self.instanceType == "arena" then -- just left arena.
 		print("Type ~= arena but self.instanceType = arena")
@@ -245,6 +251,7 @@ end
 
 -- Should only be called once at the start of the match.
 function Soundboard:grabArenaOpponentSpecializations()
+	print("Inside grabArenaOpponentSpecializations()...")
 	units = { }
 	for i = 1, GetNumArenaOpponentSpecs() do
 		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
@@ -259,10 +266,13 @@ function Soundboard:grabArenaOpponentSpecializations()
 			local id, name, description, icon, role, class = GetSpecializationInfoByID(specID)
 			
 			-- Store spec information in enemyInfo.
-			--self.enemyInfo[unit].spec = name
-			--self.enemyInfo[unit].specIcon = specIcon
-			--self.enemyInfo[unit].class = class
-			--self.enemyInfo[unit].isDead = false
+			print("About to save enemyInfo!!!")
+			self.enemyInfo.spec[unit] = name
+			self.enemyInfo.specIcon[unit] = icon
+			self.enemyInfo.class[unit] = class
+			--print("About to save isDead into unit "..unit)
+			self.enemyInfo.isDead[unit] = false
+			print("Just updated unit info "..unit)
 			--print("Did enemyInfo work? "..self.enemyInfo[unit].spec)
 		end
 	end
@@ -278,7 +288,7 @@ function Soundboard:registerAllAppropriateEvents()
 	self:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS") 
 	
 	if IsLoggedIn() then
-		print("Calling handleZoneChange()...")
+		--print("Calling handleZoneChange()...")
 		-- Important Note:
 			-- self cannot be used here because if we use self again in handleZoneChange()
 			-- it thinks we are saying self of self, which confuses the interpreter and
@@ -300,21 +310,21 @@ function Soundboard:isEnemyDead(unit)
 	
 	-- Check if the unit is arena enemy + not pet.
 	if strfind(unit, "arena") and not strfind(unit, "pet") then
-		print("Unit is arena enemy + not pet. Unit : "..unit)
+		--print("Unit is arena enemy + not pet. Unit : "..unit)
 		--local isDeadOrGhost = UnitIsDeadOrGhost(unit) -- this is a boolean, nil doesn't mean anything
-		print("is this call scruffed???")
+		--print("is this call scruffed???")
 		if UnitIsDeadOrGhost(unit) then
 			print("Inside isDeadOrGhost!")
 			--print("isDeadOrGhost = "..isDeadOrGhost.." for unit = "..unit)
 			
 			
-			--if not self.enemyInfo[unit].isDead then
-			print("Calling callSoundboard()")
-			self:callSoundboard()
-				--self.enemyInf [unit].isDead = true
-			--else
-			--	print("Enemy has already been marked dead. Skipping soundboard...")
-			--end
+			if not self.enemyInfo.isDead[unit] then
+				print("Calling callSoundboard()")
+				self:callSoundboard()
+				self.enemyInfo.isDead[unit] = true
+			else
+				print("Enemy has already been marked dead. Skipping soundboard...")
+			end
 			
 			
 		else
