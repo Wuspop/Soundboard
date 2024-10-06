@@ -1,10 +1,10 @@
-local _, core = ...; -- Namespace
+local _, Soundboard = ...; -- Addon Namespace
 
 local LSM = LibStub("LibSharedMedia-3.0");
 
 ----------
 -- TEST --
-TEST = false
+local TEST = false
 -- TEST --
 ----------
 
@@ -12,6 +12,10 @@ TEST = false
 -- Native Lua functions saved to local variables --
 local strfind = string.find
 local string = string
+local math = math
+local print = print
+local pairs = pairs
+local select = select
 ---------------------------------------------------
 ---------------------------------------------------
 
@@ -25,45 +29,89 @@ local GetNumArenaOpponentSpecs = GetNumArenaOpponentSpecs
 local GetSpecializationInfoByID = GetSpecializationInfoByID
 local GetArenaOpponentSpec = GetArenaOpponentSpec
 local IsActiveBattlefieldArena = IsActiveBattlefieldArena
+local UnitAura = UnitAura
 ------------------------------------------------
 ------------------------------------------------
+
+
+
+--Soundboard = { }
+example = { }	
+	
 
 
 if TEST then
 	print("Working in TESTING mode...")
 
+	
+	example.eventHandler = CreateFrame("Frame")
+	example.eventHandler.events = { } 
+	
+	
+	
+	example.eventHandler:RegisterEvent("PLAYER_LOGIN") -- I think reloading gives the same effect.
+	example.eventHandler:RegisterEvent("ADDON_LOADED")
+	example.eventHandler:RegisterEvent("PLAYER_LEAVE_COMBAT")
+	example.eventHandler:SetScript("OnEvent", function(self, event, ...)
+		print("Inside event")
+		
+		print("Something wrong with the method??")
+		
+		--print(sizeOfTable)
+		if event == "PLAYER_LOGIN" then
+			print("About to initialize slash commands.")
+			--example:initializeSlashCommands()
+			print("initialized slash commands")
+		elseif event == "PLAYER_LEAVE_COMBAT" then
+			--Pick a random number
+			local sizeOfTable = example:getSoundTableSize()
+			randomSoundIdx = math.random(1, sizeOfTable)
+			
+			filepath = "Interface\\Addons\\Soundboard\\Sounds\\"
+			local ok, _, handle = pcall(PlaySoundFile, filepath..Soundboard.sounds[randomSoundIdx], "Master")
+			if ok then
+				print("Played sound!")
+			else
+				print("Did not play sound!")
+			end
+		
+		end
+	
+	end)
+
 else
 	print("Working in REAL mode...")
 	-- Main starting point of the method. Upon events happening, handle them, calling the appropriate 
 	-- functions if necessary.
-	Soundboard = { }
+	
 	Soundboard.eventHandler = CreateFrame("Frame")
+	
 	Soundboard.instanceType = nil
+	--print("About to print resetArenaSpecs field")
+	Soundboard.retryArenaSpecs = true
+	--print("Starting retryArenaSpecs = ", Soundboard.retryArenaSpecs)
 
-	Soundboard.enemyInfo = { 
-		name = { },
-		specIcon = { },
-		class = { },
-		isDead = { }
-		
-	}
+	Soundboard.isDead = { }
+	Soundboard.class = { }
 	
 	Soundboard.eventHandler.events = { }
 	Soundboard.eventHandler:RegisterEvent("PLAYER_LOGIN") -- I think reloading gives the same effect.
 	Soundboard.eventHandler:RegisterEvent("ADDON_LOADED")
-	
+	Soundboard.eventHandler:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS")
 	-- when this event happens, we've entered the arena and we need to use this opportunity to grab units of the arena.
 	
 
 
 	Soundboard.eventHandler:SetScript("OnEvent", function(self, event, ...)
-		--print("Yeet")
-		--print(event)
 		if event == "PLAYER_LOGIN" then
+			print("Welcome to |cff00ccffSoundboard|r!")
 			print("Hello Player! Initializing data...")
 			Soundboard:initializeSlashCommands()
+			--print("Hello???")
 			Soundboard:UnregisterAllEvents()
+			--print("before register all events")
 			Soundboard:registerAllAppropriateEvents()
+			--print("after register all events")
 			-- Now all events registered should be 
 				-- ADDON_LOADED
 				-- PLAYER_ENTERING_WORLD
@@ -83,9 +131,39 @@ else
 	end)
 end
 
+----------------------
+-- TEST METHODS ONLY --
+function example:RegisterEvent(event, func)
+	self.eventHandler.events[event] = func or event
+	self.eventHandler:RegisterEvent(event)
+end
+
+
+function example:getSoundTableSize()
+	local size = 0
+	--print("Do we get in here?")
+	for _ in pairs(Soundboard.sounds) do
+		--print("Get into for loop at all??")
+		size = size + 1
+	end
+	--print("About to return size ", size)
+	return size
+end
+
+-- TEST METHODS ONLY --
+----------------------
+
+function Soundboard:getSoundTableSize()
+	local size = 0
+	for _ in pairs(Soundboard.sounds) do
+		size = size + 1
+	end
+	return size
+end
 
 
 function Soundboard:handleMainArenaEvents(event)
+
 	--self.handleJoinedArena()
 	
 	-- self:RegisterEvent("UNIT_NAME_UPDATE")
@@ -128,16 +206,20 @@ function Soundboard:checkEnemyStatus()
 	if not IsActiveBattlefieldArena() then
 		--print("Arena hasn't started yet - returning! Value of arena: ", arena)
 		return
-	else
-		print("Active Arena Battlefield!")
 	end
-	
-	-- Check the database for the units.
-	--if self.enemyInfo == nil then
-	--	print("self.enemyInfo is EMPTY!!")
-	--else
-	--	print("self.enemyInfo is not empty!")
-	--end
+	print("About to check retryArenaSpecs = ", self.retryArenaSpecs)
+	if self.retryArenaSpecs then
+		print("Inside retryArenaSpecs!")
+		local numOfOpponents = GetNumArenaOpponentSpecs()
+		if numOfOpponents and numOfOpponents > 0 then
+			self:grabArenaOpponentSpecializations()
+			print("Before")
+			print("Regrabbed arena opponent specs! retryArenaSpecs = ", self.retryArenaSpecs)
+			print("After")
+			self.retryArenaSpecs = false -- stay false forever.
+			--print("Active Arena Battlefield!")
+		end
+	end
 	
 	for i = 1, GetNumArenaOpponentSpecs() do
 		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
@@ -148,66 +230,16 @@ function Soundboard:checkEnemyStatus()
 		--units[i] = unit
 		self:isEnemyDead(unit)
 	end
-	
-
---[[
-	print("About to call the for loop!")
-	for _, i in pairs(self.enemyInfo) do
-		print("Insided enemyInfo??")
-		local unit = self.enemyInfo[i]
-		if not unit then
-			print("FAIL: Unit nil from table ~ !")
-			return
-		end
-		self:isEnemyDead(unit) -- need to be Soundboard:isEnemyDead ???
-		print("After isEnemyDead() call!")
-	end
-
-
-	print("About to call isEnemyDead()")
-	-- Now that we have the units. Call isEnemyDead.
-	for i = 1, #units do
-		Soundboard:isEnemyDead(units[i])
-	end
-	
-	
-
-	
-
-	for i = 1, GetNumArenaOpponentSpecs() do
-		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
-		print("Unit = "..unit)
-		if not self:IsValidUnit(unit) then
-			print("NOT A VALID UNIT - RETURNING")
-			return
-		end
-		units[i] = unit
-		local specID = GetArenaOpponentSpec(i)
-		if specID and specID > 0 then
-			--local id, name, description, icon, background, role, class = GetSpecializationInfoByID(specID)
-			local id, name, description, icon, role, class = GetSpecializationInfoByID(specID)
-			print("Got spec info")
-		end
-	end
---]]	
-	
-	
-	
-	
-	
-	
 
 end
 
 
 function Soundboard:handleJoinedArena()
-	print("Inside handleJoinedArena()")
+	--print("Inside handleJoinedArena()")
 	
 	self:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS")
 	self:RegisterEvent("ARENA_OPPONENT_UPDATE")
-	--self:RegisterEvent("UNIT_NAME_UPDATE")
 	self:RegisterEvent("UNIT_HEALTH")
-	--self:RegisterEvent("UNIT_NAME_UPDATE")
 	
 	-- Store information about enemies in table.
 	local numOfOpponents = GetNumArenaOpponentSpecs()
@@ -237,14 +269,16 @@ function Soundboard:handleZoneChange()
 	
 	-- Should only get called once when we join and the new instance type is ARENA.
 	if instanceType == "arena" then 
-		--print("Type == arena!")
+		print("Type == arena!")
 		self:handleJoinedArena()
+		self.instanceType = instanceType
 	elseif instanceType ~= "arena" and self.instanceType == "arena" then -- just left arena.
 		print("Type ~= arena but self.instanceType = arena")
 		self:handleLeftArena()
+		self.instanceType = instanceType
 	end
-	self.instanceType = instanceType
-	print("Exiting handleZoneChange()")
+	
+	--print("Exiting handleZoneChange()")
 
 
 end
@@ -252,37 +286,35 @@ end
 -- Should only be called once at the start of the match.
 function Soundboard:grabArenaOpponentSpecializations()
 	print("Inside grabArenaOpponentSpecializations()...")
-	units = { }
 	for i = 1, GetNumArenaOpponentSpecs() do
 		local unit = "arena"..i -- this must be done b/c GetNumArenaOpponentSpecs returns an arenaN where N is the arena member index.
 		if not self:IsValidUnit(unit) then
 			print("NOT A VALID UNIT - RETURNING")
 			return
 		end
-		units[i] = unit
 		local specID = GetArenaOpponentSpec(i)
 		if specID and specID > 0 then
 			--local id, name, description, icon, background, role, class = GetSpecializationInfoByID(specID)
 			local id, name, description, icon, role, class = GetSpecializationInfoByID(specID)
 			
+			print("Do we get into here? Something with enemyInfo??")
 			-- Store spec information in enemyInfo.
-			print("About to save enemyInfo!!!")
-			self.enemyInfo.spec[unit] = name
-			self.enemyInfo.specIcon[unit] = icon
-			self.enemyInfo.class[unit] = class
-			--print("About to save isDead into unit "..unit)
-			self.enemyInfo.isDead[unit] = false
+			--print("About to save enemyInfo!!!")
+
+			self.class[unit] = class
+			print("About to save isDead into unit "..unit)
+			self.isDead[unit] = false
 			print("Just updated unit info "..unit)
 			--print("Did enemyInfo work? "..self.enemyInfo[unit].spec)
+			
+
 		end
 	end
-
-
 end
 
 
 function Soundboard:registerAllAppropriateEvents()
-	print("Inside registerAllAppropriateEvents()...")
+	--print("Inside registerAllAppropriateEvents()...")
 	self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA")
 	self:RegisterEvent("ARENA_PREP_OPPONENT_SPECIALIZATIONS") 
@@ -302,7 +334,7 @@ end
 
 function Soundboard:isEnemyDead(unit)
 	-- If not unit is checking to see whether the unit string is valid or none.
-	print("Inside isEnemyDead for unit "..unit)
+	--print("Inside isEnemyDead for unit "..unit)
 	if not unit then
 		print("FAIL: Unit nil - returning !")
 		return
@@ -314,32 +346,75 @@ function Soundboard:isEnemyDead(unit)
 		--local isDeadOrGhost = UnitIsDeadOrGhost(unit) -- this is a boolean, nil doesn't mean anything
 		--print("is this call scruffed???")
 		if UnitIsDeadOrGhost(unit) then
-			print("Inside isDeadOrGhost!")
-			--print("isDeadOrGhost = "..isDeadOrGhost.." for unit = "..unit)
-			
-			
-			if not self.enemyInfo.isDead[unit] then
+			-- Check database first to see if unit is not dead yet.
+			--print("enemyInfo.isDead[unit] = ", enemyInfo.isDead[unit])
+			if self.isDead[unit] == nil then
+				print("ISDEAD NIL!")
+			end
+			if not self.isDead[unit] then
+				print("Unit is not dead yet...")
+				-- Check if arena enemy is a hunter & check feign death
+				if self.class[unit] == "HUNTER" then
+					print("Got into class = HUNTER!")
+					if self:hunterHasFeignedDeath(unit) then
+						print("Hunter has feigned death - do NOT call soundboard!")
+						return
+					end
+				end
 				print("Calling callSoundboard()")
 				self:callSoundboard()
-				self.enemyInfo.isDead[unit] = true
+				self.isDead[unit] = true
+
 			else
-				print("Enemy has already been marked dead. Skipping soundboard...")
+				--print("Enemy has already been marked dead. Skipping soundboard...")
 			end
-			
-			
+
 		else
-			print("UnitIsDeadOrGhost(unit) is false - returning.")
+			--print("UnitIsDeadOrGhost(unit) is false - returning.")
 		end
 	else
-		print("Unit is not dead and/or pet")
+		--print("Unit is not dead and/or pet")
 		return
 	end
 
 end
 
+function Soundboard:hunterHasFeignedDeath(unit)
+	-- Grab unit aura buffs and check for feign death.
+	-- Loop through all the auras present on the enemy. Check for feign death.
+	--breakLoop = false
+	local i = 1
+	local aura = ""
+	while aura ~= nil do
+		-- i = aura / buff we're looking at.
+		-- unit is the enemy player
+		-- select(1, somefunc) will return the first return value only.
+		aura = select(1, UnitAura(unit, i))
+		if aura == nil then 
+			print("Aura is nil!")
+			break
+		else
+			if aura == "Feign Death" then
+				print("Hunter has pressed feign death! Returning!")
+				return true
+			end
+		end
+		i = i + 1
+	end
+	
+	return false 
+
+end
+
 function Soundboard:callSoundboard()
 	print("Inside callSoundboard()...")
-	local ok, _, handle = pcall(PlaySoundFile, "Interface\\Addons\\Soundboard\\Sounds\\Brett3.mp3", "Master")
+	--Pick a random number
+	local sizeOfTable = Soundboard:getSoundTableSize()
+	randomSoundIdx = math.random(1, sizeOfTable)
+	
+	filepath = "Interface\\Addons\\Soundboard\\Sounds\\"
+	local ok, _, handle = pcall(PlaySoundFile, filepath..Soundboard.sounds[randomSoundIdx], "Master")
+	--local ok, _, handle = pcall(PlaySoundFile, "Interface\\Addons\\Soundboard\\Sounds\\Brett_Alien.mp3", "Master")
 	if ok then
 		print("Played sound!")
 	else
@@ -350,7 +425,7 @@ end
 
 
 function Soundboard:IsValidUnit(unit)
-	print("isValidUnit()...")
+	--print("isValidUnit()...")
 	if not unit then
 		return
 	end
@@ -373,7 +448,7 @@ end
 local function HandleSlashCommands(str)	
 	if (#str == 0) then	
 		-- User just entered "/si" with no additional args.
-		core.commands.help();
+		Soundboard.commands.help();
 		return;		
 	end	
 	
@@ -389,7 +464,7 @@ local function HandleSlashCommands(str)
 		end
 	end
 	
-	local path = core.commands; -- required for updating found table.
+	local path = Soundboard.commands; -- required for updating found table.
 	
 	for id, arg in ipairs(args) do
 		if (#arg > 0) then -- if string length is greater than 0.
@@ -404,7 +479,7 @@ local function HandleSlashCommands(str)
 				end
 			else
 				-- does not exist!
-				core.commands.help();
+				Soundboard.commands.help();
 				return;
 			end
 		end
@@ -418,7 +493,7 @@ function Soundboard:initializeSlashCommands()
 		--print("Not recognizing name ", name.."!");
 	--	return;
 	--end 
-
+	print("Are we in initializeSlashCommands??")
 	-- allows using left and right buttons to move through chat 'edit' box
 	for i = 1, NUM_CHAT_WINDOWS do
 		_G["ChatFrame"..i.."EditBox"]:SetAltArrowKeyMode(false);
@@ -440,7 +515,7 @@ function Soundboard:initializeSlashCommands()
 	SlashCmdList.Soundboard = HandleSlashCommands
 	
     --print("Welcome back", UnitName("player").."!");
-	print("Welcome to |cff00ccffSoundboard|r!")
+	
 end
 
 
@@ -452,6 +527,7 @@ function Soundboard:RegisterEvent(event, func)
 	self.eventHandler.events[event] = func or event
 	self.eventHandler:RegisterEvent(event)
 end
+
 
 function Soundboard:UnregisterEvent(event)
 	print("Get into unregister??")
