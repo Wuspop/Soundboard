@@ -1,10 +1,12 @@
 local _, Soundboard = ...; -- Addon Namespace
 
-local LSM = LibStub("LibSharedMedia-3.0");
+local AC = LibStub("AceConfig-3.0")
+local ACD = LibStub("AceConfigDialog-3.0")
+
 
 ----------
 -- TEST --
-local TEST = false
+local TEST = true
 -- TEST --
 ----------
 
@@ -16,6 +18,8 @@ local math = math
 local print = print
 local pairs = pairs
 local select = select
+local type = type
+local table = table
 ---------------------------------------------------
 ---------------------------------------------------
 
@@ -38,33 +42,97 @@ local UnitAura = UnitAura
 --Soundboard = { }
 example = { }	
 	
+Soundboard.modules = { }
 
+
+
+
+Soundboard.defaults = {
+	profile = {
+		RANDOM = false,
+		RANDOM_ECHO = false,
+		two_point_eight_k = false,
+		AYGAGAGAGAA = false,
+		BIG_DAM = false,
+		Brett_Alien = false,
+		BUDDY = false,
+		CANT_CATCH_ME = false,
+		Cant_Even = false,
+		Crusader_1 = false,
+		Crusader_2 = false,
+		Do_U_Kno_Da_Wae = false,
+		DROP_IT = false,
+		DUCT_TAPE = false,
+		ErruhhhhAHHH = false,
+		FLUTE = false,
+		gnomes = false,
+		GOIN_HAM = false,
+		Kera_Linen = false,
+		LOVE_U_GUYS = false,
+		OOMG = false,
+		PAP = false,
+		ROGER = false,
+		TOAST = false,
+		WHAT = false,
+		YA_CUCKOO = false,
+		BATTLE_STANCE = false,
+		BEST_DEMO_IN_THE_LAND = false,
+		DO_YOU_BELIEVE = false,
+		MR_KRABS_1 = false,
+		MR_KRABS_2 = false,
+		ZERO_DAM_ROGUE_SPEC = false,
+		
+		Discord_AIRHORN = false,
+		Discord_BA_DUM_TSS = false,
+		Discord_CRICKET = false,
+		Discord_GOLF_CLAP = false,
+		Discord_QUACK = false,
+		Discord_SAD_HORN = false,
+
+	},
+}
+
+
+
+
+
+
+
+
+
+
+local L
 
 if TEST then
 	print("Working in TESTING mode...")
 
 	
-	example.eventHandler = CreateFrame("Frame")
-	example.eventHandler.events = { } 
+	Soundboard.eventHandler = CreateFrame("Frame")
+	Soundboard.eventHandler.events = { } 
 	
 	
 	
-	example.eventHandler:RegisterEvent("PLAYER_LOGIN") -- I think reloading gives the same effect.
-	example.eventHandler:RegisterEvent("ADDON_LOADED")
-	example.eventHandler:RegisterEvent("PLAYER_LEAVE_COMBAT")
-	example.eventHandler:SetScript("OnEvent", function(self, event, ...)
+	Soundboard.eventHandler:RegisterEvent("PLAYER_LOGIN") -- I think reloading gives the same effect.
+	Soundboard.eventHandler:RegisterEvent("ADDON_LOADED")
+	Soundboard.eventHandler:RegisterEvent("PLAYER_LEAVE_COMBAT")
+	Soundboard.eventHandler:SetScript("OnEvent", function(self, event, ...)
 		print("Inside event")
 		
-		print("Something wrong with the method??")
+		--print("Something wrong with the method??")
 		
 		--print(sizeOfTable)
 		if event == "PLAYER_LOGIN" then
 			print("About to initialize slash commands.")
-			--example:initializeSlashCommands()
+			Soundboard:OnInitialize()
+			Soundboard:OnEnable()
+			Soundboard:initializeSlashCommands()
+
+			
 			print("initialized slash commands")
 		elseif event == "PLAYER_LEAVE_COMBAT" then
+			print("Get in here?")
 			--Pick a random number
-			local sizeOfTable = example:getSoundTableSize()
+			local sizeOfTable = Soundboard:getSoundTableSize()
 			randomSoundIdx = math.random(1, sizeOfTable)
 			
 			filepath = "Interface\\Addons\\Soundboard\\Sounds\\"
@@ -107,7 +175,7 @@ else
 			print("Welcome to |cff00ccffSoundboard|r!")
 			print("Hello Player! Initializing data...")
 			Soundboard:initializeSlashCommands()
-			--print("Hello???")
+			print("Hello???")
 			Soundboard:UnregisterAllEvents()
 			--print("before register all events")
 			Soundboard:registerAllAppropriateEvents()
@@ -131,27 +199,40 @@ else
 	end)
 end
 
-----------------------
--- TEST METHODS ONLY --
-function example:RegisterEvent(event, func)
-	self.eventHandler.events[event] = func or event
-	self.eventHandler:RegisterEvent(event)
+function Soundboard:OnInitialize()
+	print("1st")
+	self.db = LibStub("AceDB-3.0"):New("SoundboardDB", self.defaults, true)
+	print("2nd")
+	AC:RegisterOptionsTable("Soundboard", self:SetupOptions())
+	--AC:RegisterOptionsTable("Soundboard", self.options)
+	print("3rd")
+	self.optionsFrame = ACD:AddToBlizOptions("Soundboard", "Soundboard")
+	print("4th")
+	local profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
+	print("5th")
+	AC:RegisterOptionsTable("Soundboard_Profiles", profiles)
+	print("6th")
+	ACD:AddToBlizOptions("Soundboard_Profiles", "Profiles", "Soundboard")
+	print("7th")
+	
+	ACD:SetDefaultSize("Soundboard", 830, 600)
+	--AceDialog:SetDefaultSize("Soundboard", 830, 530)
+	
+	--self.db.RegisterCallback(self, "OnProfileChanged", "ProfileChanged")
+	--self.db.RegisterCallback(self, "OnProfileCopied", "ProfileChanged")
+	--self.db.RegisterCallback(self, "OnProfileReset", "ProfileChanged")
+	--aceConfigLibStub:RegisterOptionsTable("Soundboard", self.options)
+
+	self.LSM = LibStub("LibSharedMedia-3.0")
 end
 
-
-function example:getSoundTableSize()
-	local size = 0
-	--print("Do we get in here?")
-	for _ in pairs(Soundboard.sounds) do
-		--print("Get into for loop at all??")
-		size = size + 1
-	end
-	--print("About to return size ", size)
-	return size
+function Soundboard:OnEnable()
+	--print("Enabling...")
 end
 
--- TEST METHODS ONLY --
-----------------------
+function Soundboard:OnDisable()
+	print("Disabling...")
+end
 
 function Soundboard:getSoundTableSize()
 	local size = 0
@@ -443,56 +524,67 @@ function Soundboard:Print(...)
     DEFAULT_CHAT_FRAME:AddMessage(string.join(" ", prefix, ...));
 end
 
--- I think this function will be called with the init (below) and basically set up the slash commands the player can use.
--- So, we're setting up the slash commands for the new addon.
-local function HandleSlashCommands(str)	
-	if (#str == 0) then	
-		-- User just entered "/si" with no additional args.
-		Soundboard.commands.help();
-		return;		
-	end	
-	
-	-- Test code
-	--if (str == "/si")
-	--	core:Print('Passed through successfully!');
-	--end
-	
-	local args = {};
-	for _, arg in ipairs({ string.split(' ', str) }) do
-		if (#arg > 0) then
-			table.insert(args, arg);
+
+--SLASH_Soundboard1 = "/soundboard"; -- SLASH_ is the alias blizzard uses to identify an addon's /slash command.
+SLASH_SOUNDBOARD1 = "/soundboard"
+--SlashCmdList.Soundboard = function()
+SlashCmdList["SOUNDBOARD"] = function(str)
+
+		-- User just typed "/soundboard" for the options menu
+	if (#str == 0) then
+		print("Successful '/soundboard' command!")
+		AceDialog = AceDialog or LibStub("AceConfigDialog-3.0")
+		print("Can we print this thing lol", AceDialog)
+		print("first")
+		AceRegistry = AceRegistry or LibStub("AceConfigRegistry-3.0")
+		print("second")
+		if not Soundboard.options then
+			print("third")
+			Soundboard:SetupOptions()
+			print("fourth")
+			AceDialog:SetDefaultSize("Soundboard", 830, 530)
+			print("fifth")
 		end
-	end
-	
-	local path = Soundboard.commands; -- required for updating found table.
-	
-	for id, arg in ipairs(args) do
-		if (#arg > 0) then -- if string length is greater than 0.
-			arg = arg:lower();			
-			if (path[arg]) then
-				if (type(path[arg]) == "function") then				
-					-- all remaining args passed to our function!
-					path[arg](select(id + 1, unpack(args))); 
-					return;					
-				elseif (type(path[arg]) == "table") then				
-					path = path[arg]; -- another sub-table found!
+		print("sixth")
+		AceDialog:Open("Soundboard") 	
+		print("seventh")
+
+	else
+		print("Do we get here? What's the string? "..str)
+		local args = {};
+		for _, arg in ipairs({ string.split(' ', str) }) do
+			if (#arg > 0) then
+				table.insert(args, arg);
+			end
+		end
+		
+		local path = Soundboard.commands; -- required for updating found table.
+		
+		for id, arg in ipairs(args) do
+			if (#arg > 0) then -- if string length is greater than 0.
+				arg = arg:lower();			
+				if (path[arg]) then
+					if (type(path[arg]) == "function") then				
+						-- all remaining args passed to our function!
+						path[arg](select(id + 1, unpack(args))); 
+						return;					
+					elseif (type(path[arg]) == "table") then				
+						path = path[arg]; -- another sub-table found!
+					end
+				else
+					-- does not exist!
+					Soundboard.commands.help();
+					return;
 				end
-			else
-				-- does not exist!
-				Soundboard.commands.help();
-				return;
 			end
 		end
 	end
-end
+end -- SlashCmdList["SOUNDBOARD"] = function()
+
 
 -- WARNING: self automatically becomes events frame!
 function Soundboard:initializeSlashCommands()
-	--if (name ~= "Soundboard") then 
-	    -- Probably a log or something should go here.
-		--print("Not recognizing name ", name.."!");
-	--	return;
-	--end 
+
 	print("Are we in initializeSlashCommands??")
 	-- allows using left and right buttons to move through chat 'edit' box
 	for i = 1, NUM_CHAT_WINDOWS do
@@ -511,12 +603,9 @@ function Soundboard:initializeSlashCommands()
 		FrameStackTooltip_Toggle();
 	end
 
-	SLASH_Soundboard1 = "/si"; -- SLASH_ is the alias blizzard uses to identify an addon's /slash command.
-	SlashCmdList.Soundboard = HandleSlashCommands
-	
-    --print("Welcome back", UnitName("player").."!");
 	
 end
+
 
 
 --------------------------------------------------------------------------------------------
@@ -544,6 +633,474 @@ function Soundboard:UnregisterAllEvents()
 	--self.eventHandler.events[event] = nil
 	print("Unregistered all events...")
 end
+
+function Soundboard:TestPlayingSound(SoundsToPlay)
+	-- A check to see if there are no sounds selected.
+	local next = next
+	if next(SoundsToPlay) == nil then
+		print("No sounds selected by the player...")
+		return
+	end
+	
+	filepath = "Interface\\Addons\\Soundboard\\Sounds\\"
+	-- v of SoundsToPlay is string of sound.
+	for _, soundName in pairs(SoundsToPlay) do
+		--print("What is soundName in loop? ", soundName, "Soundname type: ", type(soundName))
+		if soundName == "RANDOM" or soundName == "RANDOM_ECHO" then
+			local sizeOfTable = Soundboard:getSoundTableSize()
+			randomSoundIdx = math.random(1, sizeOfTable)
+			local ok, _, handle = pcall(PlaySoundFile, filepath..Soundboard.sounds[randomSoundIdx], "Master")
+			if ok then
+				print("Played sound Random sound!")
+			else
+				print("Did not play sound!")
+			end
+		else
+			local ok, _, handle = pcall(PlaySoundFile, filepath..soundName..".mp3", "Master")
+			if ok then
+				print("Played sound!")
+			else
+				print("Did not play sound!")
+			end
+		end
+	end
+	
+	
+	-- Code for random selection
+--[[
+	local sizeOfTable = Soundboard:getSoundTableSize()
+	randomSoundIdx = math.random(1, sizeOfTable)
+	
+	filepath = "Interface\\Addons\\Soundboard\\Sounds\\"
+	local ok, _, handle = pcall(PlaySoundFile, filepath..Soundboard.sounds[randomSoundIdx], "Master")
+	if ok then
+		print("Played sound!")
+	else
+		print("Did not play sound!")
+	end
+--]]
+
+end
+
+-- Look in the profiles to see what is selected. Then whatever returns true, you play that sound.
+function Soundboard:TestPlayingSound_TWO(info)
+
+	SoundsToPlay = { }
+	
+	local count = 0
+	for key, trueSound in pairs(self.savedSoundProfileTable) do
+		--print("Get in this for lop - trueSound", trueSound)
+		
+		count = count + 1
+		
+		if self.savedSoundProfileTable[key] then
+			print("What is key for true? ",key)
+			-- Need to find which ones are true.
+			table.insert(SoundsToPlay, key)
+			--SoundsToPlay[count] = key
+			print("after??")
+			--self:TestPlayingSound(key)
+		end
+	end
+	self:TestPlayingSound(SoundsToPlay)
+		
+
+	print("ye")
+	if info == nil then
+		print("Info is nil!")
+	else
+		print("What is info? ", info)
+		print("What is info[#info]", info[#info])
+		print("What is profile ", self.db.profile)
+	end
+	
+	print("Grab this info[#info] ", self.db.profile[info[#info]])
+	
+--local location = self.db.profile[info]
+--print("Trying to print self.db.profile[info] ", self.db.profile[info])
+--local count = 0
+--for _, checkedSounds in pairs(self.savedSoundProfileTable) do
+--print("self.db.profile INDEX == ", )
+		
+--print("Count: ", count)
+		
+--end
+
+	print("End of TestPlayingSound_TWO")
+end
+
+
+--local function getOption(info)
+--	return info.arg and Soundboard.db.profile[info.arg] or Gladius.dbi.profile[info[#info]]
+--end
+
+--local function setOption(info, value)
+--	return true
+--end
+
+
+function Soundboard:GetOption(location, info)
+	--print("info.arg return = ", info.arg)
+	--print("profile[info.arg] = ", self.db.profile[info.arg])
+	--print("info[#info] = ", info[#info])
+	--print("profile[info[#info]] = ", self.db.profile[info[#info]])
+	self.savedSoundProfileTable[info[#info]] = self.db.profile[info[#info]]
+	return self.db.profile[info[#info]]
+	--return info.arg and self.db.profile[info.arg] or self.db.profile[info[#info]]
+
+	--print("Loop up here?")
+--[[
+	if info.arg then
+		print("Returning info.arg !!")
+		return info.arg
+	end
+	local value = location[info[#info]];
+	--print("Getting value...", value)
+	--print("Now getting value from our table...", self.savedSoundProfileTable[info[#info]])
+	--print("What is info[#info] ", type(info[#info]))
+	--if type(value) == "table" then
+		--self.savedSoundProfileTable[info[#info]] = value
+		--print("Just stored into savedSoundProfileTable!")
+	--	return unpack(value)
+	--else
+	--	return value
+	--end
+--]]
+end
+
+function Soundboard:SetOption(location, info, ...)
+	local value
+	
+	
+	--info = info.arg and info.arg or info[1]
+	
+	
+	if info.type == "color" then
+		value = {...}  --local r, g, b, alpha = ...
+	else
+		value = ...
+	end
+	--location[info[#info]] = value
+	self.db.profile[info[#info]] = value
+	--print("Type of self.db.profile[info[#info]] = ", type(self.db.profile[info[#info]]))
+	self.savedSoundProfileTable[info[#info]] = self.db.profile[info[#info]]
+	print("Just stored into savedSoundProfileTable!")
+	--BattleGroundEnemies:ApplyAllSettings()
+end
+
+
+--function Soundboard:ProfileChanged()
+--	self:SetupOptions()
+	--self:ApplyAllSettings()
+--end
+
 --------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------
+
+-- This is mimicing the GET OPTIONS method - not setup options - i think it'll work the same though.
+function Soundboard:SetupOptions()
+
+	print("Print anything?")
+	local location = self.db.profile
+	
+	self.options = {
+		type = "group",
+		name = "Soundboard",
+		--plugins = { },
+		get = function(info)
+			return Soundboard:GetOption(location, info)
+		end,
+		set = function(info, ...)
+			return Soundboard:SetOption(location, info, ...)
+		end,
+		args = {
+			general = {
+				type = "group",
+				name = "General",
+				order = 1,
+				args = {
+					testSound = {
+						type = "execute",
+						name = "Play Sound",
+						func = function(info)
+							print("Test button pressed!")
+							Soundboard:TestPlayingSound_TWO(info)
+							--self:Call(module, "ResetModule")
+							--self:UpdateFrame()
+						end,
+						--get = function(info)
+						--	return true
+						--end,
+						order = 0.5,
+					},
+					randomSoundSelection = {
+						type = "group",
+						name = "Random Sound",
+						inline = true,
+						order = 5,
+						args = {
+							-- Random --
+							RANDOM = {
+								type = "toggle",
+								desc = "Play a randomly selected sound",
+								name = "Random",
+								--get = "IsShowOnScreen",
+								--set = "ToggleShowOnScreen",
+								order = 10,
+							},
+							-- Random --
+							RANDOM_ECHO = {
+								type = "toggle",
+								desc = "Plays five randomly selected sounds on top of each other",
+								name = "Random Echo",
+								order = 20,
+							},
+						},
+					},
+					customSoundSelection = {
+						type = "group",
+						name = "Custom Sounds",
+						inline = true,
+						--set = function()
+						--	print("We've clicked on this button!")
+						--	return true
+						--end,
+						order = 10,
+						args = {
+							-- Custom Sounds --
+							two_point_eight_k = {
+								type = "toggle",
+								name = "2.8k boys",
+								order = 30,
+							},
+							AYGAGAGAGAA = {
+								type = "toggle",
+								name = "AYGAGAGAGAA",
+								order = 30,
+							},
+							BIG_DAM = {
+								type = "toggle",
+								name = "BIG DAM",
+								order = 30,
+							},
+							Brett_Alien = {
+								type = "toggle",
+								name = "Brett Alien",
+								order = 30,
+							},
+							BUDDY = {
+								type = "toggle",
+								name = "BUDDY",
+								order = 30,
+							},
+							CANT_CATCH_ME = {
+								type = "toggle",
+								name = "CAN'T CATCH ME",
+								order = 30,
+							},
+							Cant_Even = {
+								type = "toggle",
+								name = "Can't even",
+								order = 30,
+							},
+							Crusader_1 = {
+								type = "toggle",
+								name = "Crusader 1",
+								order = 30,
+							},
+							Crusader_2 = {
+								type = "toggle",
+								name = "Crusader 2",
+								order = 30,
+							},
+							Do_U_Kno_Da_Wae = {
+								type = "toggle",
+								name = "Da Wae",
+								order = 30,
+							},
+							DROP_IT = {
+								type = "toggle",
+								name = "DROP IT",
+								order = 30,
+							},
+							DUCT_TAPE = {
+								type = "toggle",
+								name = "DUCT TAPE",
+								order = 30,
+							},
+							ErruhhhhAHHH = {
+								type = "toggle",
+								name = "ErruhhhhAHHH",
+								order = 30,
+							},
+							FLUTE = {
+								type = "toggle",
+								name = "FLUTE",
+								order = 30,
+							},
+							gnomes = {
+								type = "toggle",
+								name = "Gnomes",
+								order = 30,
+							},
+							GOIN_HAM = {
+								type = "toggle",
+								name = "GOIN' HAM",
+								order = 30,
+							},
+							Kera_Linen = {
+								type = "toggle",
+								name = "Kera Linen",
+								order = 30,
+							},
+							LOVE_U_GUYS = {
+								type = "toggle",
+								name = "Love U Guys",
+								order = 30,
+							},
+							OOMG = {
+								type = "toggle",
+								name = "OOMG",
+								order = 30,
+							},
+							PAP = {
+								type = "toggle",
+								name = "PAP PAP PAP",
+								order = 30,
+							},
+							ROGER = {
+								type = "toggle",
+								name = "ROGER",
+								order = 30,
+							},
+							TOAST = {
+								type = "toggle",
+								name = "TOAST",
+								order = 30,
+							},
+							WHAT = {
+								type = "toggle",
+								name = "WHAT",
+								order = 30,
+							},
+							YA_CUCKOO = {
+								type = "toggle",
+								name = "YA CUCKOO",
+								order = 30,
+							},
+							BATTLE_STANCE = {
+								type = "toggle",
+								name = "BATTLE STANCE",
+								order = 30,
+							},
+							BEST_DEMO_IN_THE_LAND = {
+								type = "toggle",
+								name = "Best Demo",
+								order = 30,
+							},
+							DO_YOU_BELIEVE = {
+								type = "toggle",
+								name = "Love After Life",
+								order = 30,
+							},
+							MR_KRABS_1 = {
+								type = "toggle",
+								name = "Mr Krabs 1",
+								order = 30,
+							},
+							MR_KRABS_2 = {
+								type = "toggle",
+								name = "Mr Krabs 2",
+								order = 30,
+							},
+							ZERO_DAM_ROGUE_SPEC = {
+								type = "toggle",
+								name = "Zero Dam Rogue Spec",
+								order = 30,
+							},
+						}
+					},
+					discordDefaultsSoundSelection = {
+						type = "group",
+						name = "Discord Sounds",
+						inline = true,
+						order = 15,
+						args = {
+							-- Discord Default Sounds --
+							Discord_AIRHORN = {
+								type = "toggle",
+								name = "Discord Airhorn",
+								order = 10,
+							},
+							Discord_BA_DUM_TSS = {
+								type = "toggle",
+								name = "Discord Drums",
+								order = 20,
+							},
+							Discord_CRICKET = {
+								type = "toggle",
+								name = "Discord Crickets",
+								order = 30,
+							},
+							Discord_GOLF_CLAP = {
+								type = "toggle",
+								name = "Discord Golf Clap",
+								order = 30,
+							},
+							Discord_QUACK = {
+								type = "toggle",
+								name = "Discord Quack",
+								order = 30,
+							},
+							Discord_SAD_HORN = {
+								type = "toggle",
+								name = "Discord Sad Horn",
+								order = 30,
+							},
+						}
+					}
+				}
+			}
+		}
+	}
+	print("Get beyond self.options??")
+--[[
+	local order = 10
+	for moduleName, module in pairsByKeys(self.modules) do
+		self:SetupModule(moduleName, module, order)
+		order = order + 5
+	end
+	for _, module in pairs(self.modules) do
+		self:Call(module, "OptionsLoad")
+	end
+--]]
+	--self.options.plugins.profiles = {profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.dbi)}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	--print("self.db.profile[1]", self.db.profile[1])
+	--self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
+	print("8th")
+	--aceConfigDialog:AddToBlizOptions("Soundboard_Blizz", "Soundboard_Blizz")
+	print("self.savedSoundProfileTable first...", self.savedSoundProfileTable["RANDOM"]) -- should be true?
+	
+	--LibStub("AceConfig-3.0"):RegisterOptionsTable("Soundboard", self.options)
+	--print("In between!!")
+	--LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Soundboard_Blizz", "Soundboard_Blizz")
+	--print("After everything????")
+	
+	return self.options
+end
+
+
+
+
