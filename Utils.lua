@@ -8,19 +8,13 @@ Soundboard.commands = {
 	
 	["help"] = function()
 		print("List of slash commands:")
-		print("|cff00cc66/si config|r - shows config menu (broken atm)");
-		print("|cff00cc66/si help|r - shows help info");
-		print("|cff00cc66/si tbyrd|r - shows something. Type it to find out...");
+		print("|cff00cc66/soundboard|r - open the Soundboard menu");
+		print("|cff00cc66/soundboard help|r - shows help info");
+		print("|cff00cc66/soundboard tbyrd|r - shows something. Type it to find out...");
 	end,
 	
-	["example"] = {
-		["test"] = function(...)
-			print("My Value:", tostringall(...));
-		end
-	},
-	
 	["tbyrd"] = function()
-		print("Tbyrd Jeeeeennnnnkkkkiiiiinnnnnssss");
+		print("Tbyrrrrrrrrrrrrrrd Jeeeeennnnnkkkkiiiiinnnnnssss");
 	end
 };
 
